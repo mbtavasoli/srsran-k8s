@@ -23,7 +23,7 @@ spec:
           ]'
     spec:
       containers:
-        - image: ghcr.io/ziyad-mabrouk/srsue:v1.1
+        - image: ghcr.io/ziyad-mabrouk/srsue:v1.0
           imagePullPolicy: IfNotPresent
           name: ue
           securityContext:
