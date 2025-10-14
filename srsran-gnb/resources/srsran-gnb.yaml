@@ -59,7 +59,7 @@ log:
   config_level: debug
 
 metrics:
-  enable_log: true
+  enable_log: false
   autostart_stdout_metrics: true
   enable_json: true
   layers:
