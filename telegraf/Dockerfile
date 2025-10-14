@@ -14,4 +14,6 @@ ADD resources/entrypoint.sh resources/ws_adapter.py /usr/local/bin/
 
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+RUN chmod +x /usr/local/bin/ws_adapter.py
+
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
