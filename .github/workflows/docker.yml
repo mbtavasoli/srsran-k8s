@@ -1,9 +1,12 @@
 name: Docker Builder
+
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
+    inputs:
+      images:
+        description: "Select which images to build (comma-separated: zmq, dpdk, uhd, srsue, telegraf, all)"
+        required: true
+        default: "all"
 
 env:
   GHCR_USER: ziyad-mabrouk
@@ -20,59 +23,61 @@ jobs:
           - NAME: srsran-gnb-zmq
             DOCKERFILE: ./srsran-gnb/Dockerfile.zmq
             CONTEXT: ./srsran-gnb
+            KEY: zmq
           - NAME: srsran-gnb-dpdk
             DOCKERFILE: ./srsran-gnb/Dockerfile.dpdk
             CONTEXT: ./srsran-gnb
+            KEY: dpdk
           - NAME: srsran-gnb-uhd
             DOCKERFILE: ./srsran-gnb/Dockerfile.uhd
             CONTEXT: ./srsran-gnb
+            KEY: uhd
           - NAME: srsue
             DOCKERFILE: ./srsue/Dockerfile
             CONTEXT: ./srsue
+            KEY: srsue
           - NAME: telegraf
             DOCKERFILE: ./telegraf/Dockerfile
             CONTEXT: ./telegraf
+            KEY: telegraf
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 2
+          fetch-depth: 1
 
-      - name: Check if Dockerfile changed
-        id: changed
+      - name: Determine if this image should build
+        id: filter
         run: |
-          if git diff --name-only HEAD~1 HEAD | grep -q "${{ matrix.DOCKERFILE }}"; then
-            echo "changed=true" >> $GITHUB_OUTPUT
+          INPUT="${{ github.event.inputs.images }}"
+          KEY="${{ matrix.KEY }}"
+          if [[ "$INPUT" == "all" ]] || [[ "$INPUT" == *"$KEY"* ]]; then
+            echo "build=true" >> $GITHUB_OUTPUT
           else
-            echo "changed=false" >> $GITHUB_OUTPUT
+            echo "build=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Log in to GHCR
-        if: steps.changed.outputs.changed == 'true'
+        if: steps.filter.outputs.build == 'true'
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ env.GHCR_USER }}" --password-stdin
 
       - name: Build ${{ matrix.NAME }}
-        if: steps.changed.outputs.changed == 'true'
-        continue-on-error: true
+        if: steps.filter.outputs.build == 'true'
         run: |
           docker build \
-            --tag ${{ matrix.NAME }}:${{ env.TAG }} \
+            -t ghcr.io/${{ env.GHCR_USER }}/${{ matrix.NAME }}:${{ env.TAG }} \
             -f ${{ matrix.DOCKERFILE }} \
             ${{ matrix.CONTEXT }}
 
-      - name: Tag & Push to GHCR
-        if: steps.changed.outputs.changed == 'true'
-        continue-on-error: true
-        run: |
-          IMAGE_URI=ghcr.io/${{ env.GHCR_USER }}/${{ matrix.NAME }}:${{ env.TAG }}
-          docker tag ${{ matrix.NAME }}:${{ env.TAG }} "$IMAGE_URI"
-          docker push "$IMAGE_URI"
+      - name: Push ${{ matrix.NAME }}
+        if: steps.filter.outputs.build == 'true'
+        run: docker push ghcr.io/${{ env.GHCR_USER }}/${{ matrix.NAME }}:${{ env.TAG }}
 
-      - name: Skip unchanged
-        if: steps.changed.outputs.changed == 'false'
-        run: echo "No changes detected for ${{ matrix.NAME }}, skipping build."
+      - name: Skip build
+        if: steps.filter.outputs.build == 'false'
+        run: echo "Skipping ${{ matrix.NAME }} (not selected)."
 
-      - name: Log out of GHCR
+      - name: Log out
         if: always()
         run: docker logout ghcr.io
