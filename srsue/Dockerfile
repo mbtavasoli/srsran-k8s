@@ -32,5 +32,8 @@ WORKDIR /opt
 RUN git clone https://github.com/srsRAN/srsRAN_4G.git
 
 RUN cd srsRAN_4G && mkdir build && cd build && \
-    cmake ../  && \
-    make
+    CXXFLAGS="-Wno-error=array-bounds" cmake ../ -DBUILD_TESTING=OFF && \
+    make -j$(nproc)
+
+RUN apt-get purge -y git cmake build-essential gcc g++ pkg-config \
+    && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*

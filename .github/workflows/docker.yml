@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         include:
           - NAME: srsran-gnb-zmq
@@ -40,6 +41,7 @@ jobs:
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ env.GHCR_USER }}" --password-stdin
 
       - name: Build ${{ matrix.NAME }}
+        continue-on-error: false
         run: |
           docker build \
             --tag ${{ matrix.NAME }}:${{ env.TAG }} \
@@ -47,6 +49,7 @@ jobs:
             ${{ matrix.CONTEXT }}
 
       - name: Tag & Push to GHCR
+        continue-on-error: false
         run: |
           IMAGE_URI=ghcr.io/${{ env.GHCR_USER }}/${{ matrix.NAME }}:${{ env.TAG }}
           docker tag ${{ matrix.NAME }}:${{ env.TAG }} "$IMAGE_URI"
