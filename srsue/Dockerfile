@@ -1,3 +1,7 @@
+#=========================
+# srsRAN UE Dockerfile
+#=========================
+
 ARG OS_VERSION=24.04
 
 FROM ubuntu:$OS_VERSION AS builder

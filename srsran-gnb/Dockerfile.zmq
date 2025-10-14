@@ -1,3 +1,7 @@
+#=========================
+# srsRAN gNB Dockerfile with ZeroMQ support
+#=========================
+
 ARG OS_VERSION=24.04
 
 # =========================
