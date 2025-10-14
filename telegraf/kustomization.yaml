@@ -2,5 +2,5 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-- telegraf-deployment.yaml
-- gnb-service.yaml
+- manifests/telegraf-deployment.yaml
+- manifests/gnb-service.yaml

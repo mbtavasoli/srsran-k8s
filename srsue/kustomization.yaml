@@ -1,5 +1,5 @@
 resources:
-- ue-deployment.yaml
+- manifests/ue-deployment.yaml
 
 configMapGenerator:
   - name: ue-configmap
