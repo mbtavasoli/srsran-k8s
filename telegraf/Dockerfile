@@ -12,4 +12,6 @@ ADD resources/telegraf.conf /etc/srs/
 
 ADD resources/entrypoint.sh resources/ws_adapter.py /usr/local/bin/
 
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 ENTRYPOINT [ "/usr/local/bin/entrypoint.sh" ]
