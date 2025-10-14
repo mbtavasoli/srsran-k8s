@@ -4,6 +4,8 @@
 #   sudo ./gnb -c gnb_zmq.yaml
 
 cu_cp:
+  inactivity_timer: 7200
+  request_pdu_session_timeout: 30
   amf:
     addr: 10.10.3.200
     port: 38412
