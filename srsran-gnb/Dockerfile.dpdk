@@ -88,6 +88,10 @@ COPY --from=builder /opt/srs /usr/local
 
 ARG DPDK_VERSION
 
-RUN pip3 install pyelftools || pip3 install --break-system-packages pyelftools
-
 COPY --from=builder /opt/dpdk/${DPDK_VERSION} /opt/dpdk/${DPDK_VERSION}
+
+ENV LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/opt/dpdk/${DPDK_VERSION}/lib/:/opt/dpdk/${DPDK_VERSION}/lib/x86_64-linux-gnu/:/opt/dpdk/${DPDK_VERSION}/lib/aarch64-linux-gnu/
+
+ENV PATH=$PATH:/opt/dpdk/${DPDK_VERSION}/bin/
+
+RUN pip3 install pyelftools || pip3 install --break-system-packages pyelftools
