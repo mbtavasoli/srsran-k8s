@@ -1,6 +1,6 @@
-#=========================
+# =========================
 # srsRAN gNB Dockerfile with DPDK support
-#=========================
+# =========================
 
 ARG OS_VERSION=24.04
 ARG DPDK_VERSION=24.11.2

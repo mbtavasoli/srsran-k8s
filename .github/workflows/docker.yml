@@ -35,6 +35,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ env.GHCR_USER }}" --password-stdin
@@ -42,7 +44,13 @@ jobs:
       - name: Check if Dockerfile/context changed
         id: docker_changed
         run: |
-          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E "^${{ matrix.CONTEXT }}/|^${{ matrix.DOCKERFILE }}$")
+          # fallback for first commit or shallow clones
+          if git rev-parse HEAD~1 >/dev/null 2>&1; then
+            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E "^${{ matrix.CONTEXT }}/|^${{ matrix.DOCKERFILE }}$")
+          else
+            CHANGED=1  # first commit -> consider changed
+          fi
+
           if [ -z "$CHANGED" ]; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
