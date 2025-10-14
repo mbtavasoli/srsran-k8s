@@ -26,7 +26,8 @@ spec:
         - image: ghcr.io/ziyad-mabrouk/srsran-gnb-zmq:v1.0
           imagePullPolicy: IfNotPresent
           name: gnb
-          command: ["/srsran/config/start_gnb.sh"]
+          command: ["/bin/bash", "-c"]
+          args: ["/srsran/config/start_gnb.sh"]
           # resizePolicy:
           # - resourceName: cpu
           #   restartPolicy: NotRequired
