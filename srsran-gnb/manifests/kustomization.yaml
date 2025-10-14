@@ -7,5 +7,5 @@ resources:
 configMapGenerator:
   - name: gnb-configmap
     files:
-      - config/srsran-gnb.yaml
-      - config/start_gnb.sh
+      - resources/srsran-gnb.yaml
+      - resources/start_gnb.sh
