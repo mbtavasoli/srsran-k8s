@@ -1,4 +1,5 @@
-#!/bin/sh
+#!/usr/bin/env bash
+
 set -o pipefail
 
 if [ -n "$RETINA_PORTS" ]; then

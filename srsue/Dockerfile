@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libboost-program-options-dev \
     libconfig++-dev \
     libzmq3-dev \
+    gnuradio \
     iproute2 \
     python3 \
     tmux \
