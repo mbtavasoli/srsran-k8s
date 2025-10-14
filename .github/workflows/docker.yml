@@ -36,12 +36,25 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Check if Dockerfile changed
+        id: changed
+        run: |
+          if git diff --name-only HEAD~1 HEAD | grep -q "${{ matrix.DOCKERFILE }}"; then
+            echo "changed=true" >> $GITHUB_OUTPUT
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Log in to GHCR
+        if: steps.changed.outputs.changed == 'true'
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ env.GHCR_USER }}" --password-stdin
 
       - name: Build ${{ matrix.NAME }}
-        continue-on-error: false
+        if: steps.changed.outputs.changed == 'true'
+        continue-on-error: true
         run: |
           docker build \
             --tag ${{ matrix.NAME }}:${{ env.TAG }} \
@@ -49,11 +62,16 @@ jobs:
             ${{ matrix.CONTEXT }}
 
       - name: Tag & Push to GHCR
-        continue-on-error: false
+        if: steps.changed.outputs.changed == 'true'
+        continue-on-error: true
         run: |
           IMAGE_URI=ghcr.io/${{ env.GHCR_USER }}/${{ matrix.NAME }}:${{ env.TAG }}
           docker tag ${{ matrix.NAME }}:${{ env.TAG }} "$IMAGE_URI"
           docker push "$IMAGE_URI"
+
+      - name: Skip unchanged
+        if: steps.changed.outputs.changed == 'false'
+        run: echo "No changes detected for ${{ matrix.NAME }}, skipping build."
 
       - name: Log out of GHCR
         if: always()

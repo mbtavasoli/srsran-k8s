@@ -90,6 +90,6 @@ COPY --from=builder /opt/srs /usr/local
 
 ARG UHD_VERSION
 
-RUN uhd_images_downloader
-
 COPY --from=builder /opt/uhd/${UHD_VERSION} /opt/uhd/${UHD_VERSION}
+
+RUN uhd_images_downloader
