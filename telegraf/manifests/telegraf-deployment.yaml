@@ -5,15 +5,18 @@ metadata:
   name: telegraf
   labels:
     app: telegraf
+    nf: gnb
 spec:
   replicas: 1
   selector:
     matchLabels:
       app: telegraf
+      nf: gnb
   template:
     metadata:
       labels:
         app: telegraf
+        nf: gnb
     spec:
       containers:
         - name: telegraf
