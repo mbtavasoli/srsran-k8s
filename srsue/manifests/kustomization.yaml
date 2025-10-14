@@ -1,0 +1,11 @@
+resources:
+- ue-deployment.yaml
+
+configMapGenerator:
+  - name: ue-configmap
+    files:
+      - config/ue0.conf
+      - config/multi_ue_scenario.py
+      - config/generate_ue_conf.py
+      - config/start_ue.sh
+      - config/start_gnu.sh

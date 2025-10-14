@@ -1,0 +1,91 @@
+ARG OS_VERSION=24.04
+ARG UHD_VERSION=4.7.0.0
+
+# =========================
+# Stage 1: Build Stage
+# =========================
+FROM ubuntu:$OS_VERSION AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    cmake \
+    make \
+    gcc \
+    g++ \
+    pkg-config \
+    libfftw3-dev \
+    libmbedtls-dev \
+    libsctp-dev \
+    libyaml-cpp-dev \
+    libgtest-dev \
+    curl \
+    apt-transport-https \
+    xz-utils \
+    build-essential \
+    libboost-all-dev \
+    libusb-1.0-0-dev \
+    python3-mako \
+    python3-numpy \
+    python3-setuptools \
+    python3-requests \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/srsran/srsRAN_Project.git /src
+
+ARG UHD_VERSION
+
+RUN /src/docker/scripts/build_uhd.sh "${UHD_VERSION}"
+
+ENV UHD_DIR=/opt/uhd/${UHD_VERSION}
+
+# Build srsRAN with UHD enabled
+WORKDIR /src
+
+RUN mkdir build && cd build && \
+    cmake ../ -DENABLE_EXPORT=ON -DENABLE_UHD=On -DCMAKE_INSTALL_PREFIX=/opt/srs && \
+    make -j$(nproc)
+
+RUN cp /src/build/apps/cu/srscu             /tmp/srscu                     && \
+    cp /src/build/apps/du/srsdu             /tmp/srsdu                     && \
+    cp /src/build/apps/gnb/gnb              /tmp/gnb                       && \
+    cd /src/build                                                          && \
+    make install                                                           && \
+    mv /tmp/srscu                           /opt/srs/bin/srscu             && \
+    mv /tmp/srsdu                           /opt/srs/bin/srsdu             && \
+    mv /tmp/gnb                             /opt/srs/bin/gnb
+
+# =========================
+# Stage 2: Runtime Stage
+# =========================
+FROM ubuntu:$OS_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libfftw3-dev \
+    libmbedtls-dev \
+    libsctp-dev \
+    libyaml-cpp-dev \
+    libgtest-dev \
+    cpufrequtils \
+    inetutils-tools \
+    libboost-all-dev \
+    libncurses5-dev \
+    libusb-1.0-0 \
+    libusb-1.0-0-dev \
+    libusb-dev \
+    python3-dev \
+    python3-requests \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/srs /usr/local
+
+ARG UHD_VERSION
+
+RUN uhd_images_downloader
+
+COPY --from=builder /opt/uhd/${UHD_VERSION} /opt/uhd/${UHD_VERSION}

@@ -1,0 +1,69 @@
+name: Docker Builder
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+env:
+  GHCR_USER: ziyad-mabrouk
+  TAG: v1.0
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        include:
+          - NAME: srsran-gnb-zmq
+            DOCKERFILE: ./srsran-gnb/Dockerfile.zmq
+            CONTEXT: ./srsran-gnb
+          - NAME: srsran-gnb-dpdk
+            DOCKERFILE: ./srsran-gnb/Dockerfile.dpdk
+            CONTEXT: ./srsran-gnb
+          - NAME: srsran-gnb-uhd
+            DOCKERFILE: ./srsran-gnb/Dockerfile.uhd
+            CONTEXT: ./srsran-gnb
+          - NAME: srsue
+            DOCKERFILE: ./srsue/Dockerfile
+            CONTEXT: ./srsue
+          - NAME: telegraf
+            DOCKERFILE: ./telegraf/Dockerfile
+            CONTEXT: ./telegraf
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ env.GHCR_USER }}" --password-stdin
+
+      - name: Check if Dockerfile/context changed
+        id: docker_changed
+        run: |
+          CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E "^${{ matrix.CONTEXT }}/|^${{ matrix.DOCKERFILE }}$")
+          if [ -z "$CHANGED" ]; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build ${{ matrix.NAME }}
+        if: steps.docker_changed.outputs.changed == 'true'
+        run: |
+          docker build \
+            --tag ${{ matrix.NAME }}:${{ env.TAG }} \
+            -f ${{ matrix.DOCKERFILE }} \
+            ${{ matrix.CONTEXT }}
+
+      - name: Tag & Push to GHCR
+        if: steps.docker_changed.outputs.changed == 'true'
+        run: |
+          IMAGE_URI=ghcr.io/${{ env.GHCR_USER }}/${{ matrix.NAME }}:${{ env.TAG }}
+          docker tag ${{ matrix.NAME }}:${{ env.TAG }} "$IMAGE_URI"
+          docker push "$IMAGE_URI"
+
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io

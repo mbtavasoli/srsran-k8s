@@ -1,0 +1,89 @@
+ARG OS_VERSION=24.04
+ARG DPDK_VERSION=24.11.2
+
+# =========================
+# Stage 1: Build Stage
+# =========================
+FROM ubuntu:$OS_VERSION AS builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git \
+    cmake \
+    make \
+    gcc \
+    g++ \
+    pkg-config \
+    libfftw3-dev \
+    libmbedtls-dev \
+    libsctp-dev \
+    libyaml-cpp-dev \
+    libgtest-dev \
+    curl \
+    apt-transport-https\
+    xz-utils \
+    python3-pip \
+    ninja-build \
+    build-essential \
+    libnuma-dev \
+    libfdt-dev \
+    pciutils \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/srsran/srsRAN_Project.git /src
+
+ARG DPDK_VERSION
+
+RUN pip3 install meson pyelftools || pip3 install --break-system-packages meson pyelftools
+
+RUN /src/docker/scripts/build_dpdk.sh "${DPDK_VERSION}"
+
+ENV DPDK_DIR=/opt/dpdk/${DPDK_VERSION}
+
+# Build srsRAN with DPDK enabled
+WORKDIR /src
+
+RUN mkdir build && cd build && \
+    cmake ../ -DENABLE_EXPORT=ON -DENABLE_DPDK=On -DCMAKE_INSTALL_PREFIX=/opt/srs && \
+    make -j$(nproc)
+
+RUN cp /src/build/apps/cu/srscu             /tmp/srscu                     && \
+    cp /src/build/apps/du/srsdu             /tmp/srsdu                     && \
+    cp /src/build/apps/gnb/gnb              /tmp/gnb                       && \
+    cd /src/build                                                          && \
+    make install                                                           && \
+    mv /tmp/srscu                           /opt/srs/bin/srscu             && \
+    mv /tmp/srsdu                           /opt/srs/bin/srsdu             && \
+    mv /tmp/gnb                             /opt/srs/bin/gnb
+
+# =========================
+# Stage 2: Runtime Stage
+# =========================
+FROM ubuntu:$OS_VERSION
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libfftw3-dev \
+    libmbedtls-dev \
+    libsctp-dev \
+    libyaml-cpp-dev \
+    libgtest-dev \
+    python3-pip \
+    libnuma-dev \
+    pciutils \
+    libfdt-dev \
+    libatomic1 \
+    iproute2 \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /opt/srs /usr/local
+
+ARG DPDK_VERSION
+
+RUN pip3 install pyelftools || pip3 install --break-system-packages pyelftools
+
+COPY --from=builder /opt/dpdk/${DPDK_VERSION} /opt/dpdk/${DPDK_VERSION}
