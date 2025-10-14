@@ -35,30 +35,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 2
 
       - name: Log in to GHCR
         run: echo "${{ secrets.GHCR_TOKEN }}" | docker login ghcr.io -u "${{ env.GHCR_USER }}" --password-stdin
 
-      - name: Check if Dockerfile/context changed
-        id: docker_changed
-        run: |
-          # fallback for first commit or shallow clones
-          if git rev-parse HEAD~1 >/dev/null 2>&1; then
-            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep -E "^${{ matrix.CONTEXT }}/|^${{ matrix.DOCKERFILE }}$")
-          else
-            CHANGED=1  # first commit -> consider changed
-          fi
-
-          if [ -z "$CHANGED" ]; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build ${{ matrix.NAME }}
-        if: steps.docker_changed.outputs.changed == 'true'
         run: |
           docker build \
             --tag ${{ matrix.NAME }}:${{ env.TAG }} \
@@ -66,7 +47,6 @@ jobs:
             ${{ matrix.CONTEXT }}
 
       - name: Tag & Push to GHCR
-        if: steps.docker_changed.outputs.changed == 'true'
         run: |
           IMAGE_URI=ghcr.io/${{ env.GHCR_USER }}/${{ matrix.NAME }}:${{ env.TAG }}
           docker tag ${{ matrix.NAME }}:${{ env.TAG }} "$IMAGE_URI"
