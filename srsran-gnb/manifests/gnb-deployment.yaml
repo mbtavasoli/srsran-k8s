@@ -23,7 +23,7 @@ spec:
           ]'
     spec:
       containers:
-        - image: ghcr.io/ziyad-mabrouk/srsran-gnb-zmq:v1.0
+        - image: ghcr.io/ziyad-mabrouk/srsran-gnb-uhd:v1.0
           imagePullPolicy: IfNotPresent
           name: gnb
           command: ["/bin/bash", "-c"]
